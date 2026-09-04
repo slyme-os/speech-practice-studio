@@ -320,7 +320,7 @@
                     Debug Log
                 </h2>
                 <div id="debugLog" class="bg-slate-900 rounded-lg p-4 h-48 overflow-y-auto border border-slate-700">
-                    <p class="log-entry text-slate-400">[INFO] Speech Practice Studio initialized...</p>
+                    <p class="log-entry text-slate-400">[INFO] Speech Practice Studio initializing...</p>
                 </div>
             </div>
         </div>
@@ -328,9 +328,8 @@
 
     <script>
         /**
-         * SPEECH PRACTICE STUDIO - FIXED VERSION
-         * Using Web Speech API with proper error handling
-         * Fixed network issues and camera preview
+         * SPEECH PRACTICE STUDIO - PRODUCTION VERSION
+         * Fixed: Speech recognition abort error and stable operation
          */
 
         const CONFIG = {
@@ -351,11 +350,13 @@
             pausedTime: 0,
             transcript: '',
             recordingStartTime: 0,
+            isRecognitionActive: false,
         };
 
         // Web Speech API Setup
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
+        let recognitionRestartTimer = null;
 
         // Initialize recognition safely
         if (SpeechRecognition) {
@@ -364,6 +365,7 @@
                 recognition.continuous = true;
                 recognition.interimResults = true;
                 recognition.lang = CONFIG.RECOGNITION_LANGUAGE;
+                recognition.maxAlternatives = 1;
                 setupRecognitionListeners();
                 addLog('Web Speech API initialized successfully', 'success');
             } catch (error) {
@@ -425,6 +427,7 @@
 
             recognition.onstart = () => {
                 addLog('Speech recognition started', 'success');
+                appState.isRecognitionActive = true;
             };
 
             recognition.onresult = (event) => {
@@ -455,21 +458,31 @@
                 const errorMessages = {
                     'no-speech': 'No speech detected. Please try again.',
                     'audio-capture': 'No microphone found. Ensure microphone access is granted.',
-                    'network': 'Network error - this is expected if offline. Continuing locally...',
-                    'aborted': 'Speech recognition was aborted.'
+                    'network': 'Network error - continuing locally...',
+                    'aborted': 'Speech recognition stopped.',
+                    'service-not-allowed': 'Speech Recognition service not allowed.'
                 };
                 
                 const errorMsg = errorMessages[event.error] || `Recognition error: ${event.error}`;
-                addLog(errorMsg, event.error === 'network' ? 'warning' : 'error');
+                addLog(errorMsg, event.error === 'network' || event.error === 'aborted' ? 'warning' : 'error');
                 
-                // Don't show toast for network errors (offline is OK)
-                if (event.error !== 'network') {
-                    showToast(errorMsg, 'error');
+                // Auto-restart recognition if still recording (except for aborted which we control)
+                if (appState.isRecording && event.error !== 'aborted' && !appState.isPaused) {
+                    if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
+                    recognitionRestartTimer = setTimeout(() => {
+                        try {
+                            recognition.start();
+                            addLog('Restarted speech recognition', 'info');
+                        } catch (e) {
+                            addLog(`Failed to restart recognition: ${e.message}`, 'warning');
+                        }
+                    }, 1000);
                 }
             };
 
             recognition.onend = () => {
                 addLog('Speech recognition ended', 'info');
+                appState.isRecognitionActive = false;
             };
         }
 
@@ -594,11 +607,13 @@
                 recognition.start();
             } catch (error) {
                 addLog(`Recognition start error: ${error.message}`, 'warning');
+                // Recognition might already be running, that's OK
             }
 
             addLog('Recording and transcription started', 'success');
             showToast('Recording started - speak now!', 'success');
 
+            appState.startTime = Date.now();
             updateTimerDisplay();
             startTimer();
             document.getElementById('recordingStatus').textContent = 'Recording...';
@@ -624,14 +639,17 @@
             if (!appState.isRecording || appState.isPaused) return;
 
             appState.isPaused = true;
-            if (appState.mediaRecorder) appState.mediaRecorder.pause();
-            try {
-                recognition.abort();
-            } catch (e) {}
+            if (appState.mediaRecorder && appState.mediaRecorder.state === 'recording') {
+                appState.mediaRecorder.pause();
+            }
+            
+            // Don't abort recognition, just let it continue silently
+            appState.pausedTime = Date.now() - appState.startTime;
 
             document.getElementById('pauseBtn').textContent = 'Resume';
             document.getElementById('recordingStatus').textContent = 'Paused';
-            appState.pausedTime = Date.now() - appState.startTime;
+
+            if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
 
             addLog('Recording paused', 'warning');
             showToast('Recording paused', 'info');
@@ -641,10 +659,10 @@
             if (!appState.isRecording || !appState.isPaused) return;
 
             appState.isPaused = false;
-            if (appState.mediaRecorder) appState.mediaRecorder.resume();
-            try {
-                recognition.start();
-            } catch (e) {}
+            if (appState.mediaRecorder && appState.mediaRecorder.state === 'paused') {
+                appState.mediaRecorder.resume();
+            }
+            
             appState.startTime = Date.now() - appState.pausedTime;
 
             document.getElementById('pauseBtn').textContent = 'Pause';
@@ -659,11 +677,21 @@
             if (!appState.isRecording) return;
 
             appState.isRecording = false;
-            if (appState.mediaRecorder) appState.mediaRecorder.stop();
-            try {
-                recognition.abort();
-            } catch (e) {}
             
+            if (appState.mediaRecorder && appState.mediaRecorder.state !== 'inactive') {
+                appState.mediaRecorder.stop();
+            }
+            
+            // Stop recognition gracefully
+            if (recognition && appState.isRecognitionActive) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    // Silently fail if already stopped
+                }
+            }
+            
+            if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
             if (appState.timerInterval) clearInterval(appState.timerInterval);
 
             // UI Updates
@@ -717,6 +745,20 @@
         }
 
         function resetSession() {
+            // Stop recording if active
+            if (appState.isRecording) {
+                stopRecording();
+            }
+
+            // Clean up recognition
+            if (recognition && appState.isRecognitionActive) {
+                try {
+                    recognition.stop();
+                } catch (e) {}
+            }
+
+            if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
+
             appState = {
                 isRecording: false,
                 isPaused: false,
@@ -731,6 +773,7 @@
                 pausedTime: 0,
                 transcript: '',
                 recordingStartTime: 0,
+                isRecognitionActive: false,
             };
 
             document.getElementById('startBtn').disabled = false;
@@ -778,6 +821,7 @@
         updateTimerDisplay();
         addLog('🎤 Speech Practice Studio loaded', 'success');
         addLog(`Language: ${CONFIG.RECOGNITION_LANGUAGE}`, 'info');
+        addLog('Ready to start recording!', 'info');
     </script>
 </body>
 </html>
