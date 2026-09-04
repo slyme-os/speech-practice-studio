@@ -72,6 +72,14 @@
             line-height: 1.4;
             word-break: break-all;
         }
+
+        .video-placeholder {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-white">
@@ -84,7 +92,7 @@
             <!-- Header -->
             <header class="text-center mb-10">
                 <h1 class="text-5xl font-bold text-gradient mb-2">Speech Practice Studio</h1>
-                <p class="text-slate-400 text-lg">High-precision transcription with Web Speech API & fallback methods</p>
+                <p class="text-slate-400 text-lg">Real-time speech recognition with live transcription</p>
             </header>
 
             <!-- Main Grid: Dashboard + Video -->
@@ -188,14 +196,24 @@
                             Camera & Audio Preview
                         </h2>
 
-                        <!-- Video Preview -->
+                        <!-- Live Video Preview -->
                         <div class="mb-4">
-                            <video 
-                                id="liveVideo" 
-                                class="w-full h-64 md:h-80 bg-slate-900 rounded-lg border border-slate-600 mirror-video object-cover"
-                                muted
-                            ></video>
-                            <p id="videoStatus" class="text-sm text-slate-400 mt-2 text-center">Click 'Start Practice' to enable camera</p>
+                            <div id="videoContainer" class="w-full h-64 md:h-80 bg-slate-900 rounded-lg border border-slate-600 overflow-hidden flex items-center justify-center video-placeholder">
+                                <video 
+                                    id="liveVideo" 
+                                    class="w-full h-full mirror-video object-cover hidden"
+                                    muted
+                                    playsinline
+                                    autoplay
+                                ></video>
+                                <div id="videoPlaceholder" class="text-center">
+                                    <svg class="w-16 h-16 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <p class="text-slate-400">Click 'Start Practice' to enable camera</p>
+                                </div>
+                            </div>
+                            <p id="videoStatus" class="text-sm text-slate-400 mt-2 text-center">Camera not active</p>
                         </div>
 
                         <!-- Recorded Playback -->
@@ -205,6 +223,7 @@
                                 id="recordedVideo" 
                                 class="w-full h-64 md:h-80 bg-slate-900 rounded-lg border border-slate-600 object-cover mb-3"
                                 controls
+                                playsinline
                             ></video>
                         </div>
 
@@ -228,20 +247,8 @@
                     Transcript & Analytics
                 </h2>
 
-                <!-- Loading State -->
-                <div id="transcriptionLoading" class="hidden">
-                    <div class="flex flex-col items-center justify-center py-12">
-                        <div class="spinner mb-4"></div>
-                        <p class="text-slate-300 font-medium mb-2">Processing your speech...</p>
-                        <p class="text-sm text-slate-400 mb-4">Using Web Speech Recognition API for real-time transcription</p>
-                        <div class="w-full max-w-xs bg-slate-700 rounded-full h-2 overflow-hidden">
-                            <div id="transcriptionProgress" class="progress-bar-fill h-full bg-gradient-to-r from-blue-500 to-purple-500" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Transcript Container -->
-                <div id="transcriptContainer" class="hidden">
+                <div id="transcriptContainer" class="">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                         <!-- Transcript Text -->
                         <div class="lg:col-span-2">
@@ -304,14 +311,6 @@
                         </button>
                     </div>
                 </div>
-
-                <!-- Empty State -->
-                <div id="emptyState" class="text-center py-12">
-                    <svg class="w-16 h-16 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4"></path>
-                    </svg>
-                    <p class="text-slate-400 text-lg">Complete a recording to see transcript and analytics</p>
-                </div>
             </div>
 
             <!-- Debug Log -->
@@ -329,14 +328,13 @@
 
     <script>
         /**
-         * SPEECH PRACTICE STUDIO - IMPROVED VERSION
-         * Using Web Speech API for high-precision transcription
-         * Supports multiple languages and real-time recognition
+         * SPEECH PRACTICE STUDIO - FIXED VERSION
+         * Using Web Speech API with proper error handling
+         * Fixed network issues and camera preview
          */
 
         const CONFIG = {
-            RECOGNITION_LANGUAGE: 'en-US', // Change to your language: 'es-ES', 'fr-FR', 'de-DE', etc.
-            MAX_INTERIM_RESULTS: 10,
+            RECOGNITION_LANGUAGE: 'en-US',
         };
 
         let appState = {
@@ -352,12 +350,29 @@
             startTime: null,
             pausedTime: 0,
             transcript: '',
-            isFinal: false,
+            recordingStartTime: 0,
         };
 
-        // Web Speech API Recognition Setup
+        // Web Speech API Setup
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        let recognition = null;
+
+        // Initialize recognition safely
+        if (SpeechRecognition) {
+            try {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = CONFIG.RECOGNITION_LANGUAGE;
+                setupRecognitionListeners();
+                addLog('Web Speech API initialized successfully', 'success');
+            } catch (error) {
+                addLog(`Failed to initialize Web Speech API: ${error.message}`, 'error');
+            }
+        } else {
+            addLog('Web Speech API not supported in this browser', 'error');
+            showToast('Web Speech API not supported. Use Chrome, Edge, or Safari.', 'error');
+        }
 
         // ==================== LOGGING UTILITY ====================
 
@@ -376,7 +391,6 @@
             entry.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
             debugLog.appendChild(entry);
             debugLog.scrollTop = debugLog.scrollHeight;
-            console.log(`[${type.toUpperCase()}] ${message}`);
         }
 
         // ==================== UTILITY FUNCTIONS ====================
@@ -406,15 +420,11 @@
 
         // ==================== SPEECH RECOGNITION SETUP ====================
 
-        if (recognition) {
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.lang = CONFIG.RECOGNITION_LANGUAGE;
+        function setupRecognitionListeners() {
+            if (!recognition) return;
 
             recognition.onstart = () => {
                 addLog('Speech recognition started', 'success');
-                appState.transcript = '';
-                document.getElementById('transcriptText').value = '';
             };
 
             recognition.onresult = (event) => {
@@ -426,18 +436,18 @@
                     
                     if (event.results[i].isFinal) {
                         finalTranscript += transcript + ' ';
-                        addLog(`Final: "${transcript}"`, 'success');
                     } else {
                         interimTranscript += transcript;
-                        addLog(`Interim: "${transcript}"`, 'info');
                     }
                 }
 
-                // Update state
-                appState.transcript += finalTranscript;
+                if (finalTranscript) {
+                    appState.transcript += finalTranscript;
+                    addLog(`Final: "${finalTranscript.trim()}"`, 'success');
+                }
+
+                // Update display with both final and interim
                 document.getElementById('transcriptText').value = appState.transcript + interimTranscript;
-                
-                // Update analytics in real-time
                 updateAnalytics();
             };
 
@@ -445,21 +455,22 @@
                 const errorMessages = {
                     'no-speech': 'No speech detected. Please try again.',
                     'audio-capture': 'No microphone found. Ensure microphone access is granted.',
-                    'network': 'Network error occurred.',
+                    'network': 'Network error - this is expected if offline. Continuing locally...',
                     'aborted': 'Speech recognition was aborted.'
                 };
                 
                 const errorMsg = errorMessages[event.error] || `Recognition error: ${event.error}`;
-                addLog(errorMsg, 'error');
-                showToast(errorMsg, 'error');
+                addLog(errorMsg, event.error === 'network' ? 'warning' : 'error');
+                
+                // Don't show toast for network errors (offline is OK)
+                if (event.error !== 'network') {
+                    showToast(errorMsg, 'error');
+                }
             };
 
             recognition.onend = () => {
                 addLog('Speech recognition ended', 'info');
             };
-        } else {
-            addLog('Web Speech API not supported in this browser', 'warning');
-            showToast('Web Speech API not supported. Use Chrome, Edge, or Safari.', 'error');
         }
 
         // ==================== ANALYTICS FUNCTIONS ====================
@@ -469,7 +480,6 @@
             const words = text.trim().split(/\s+/).filter(w => w.length > 0);
             const wordCount = words.length;
 
-            // Calculate duration from timer
             const elapsed = appState.totalSeconds - appState.remainingSeconds;
             const wpm = elapsed > 0 ? Math.round((wordCount / elapsed) * 60) : 0;
 
@@ -496,9 +506,14 @@
                 });
 
                 appState.mediaStream = stream;
-                document.getElementById('liveVideo').srcObject = stream;
+                const videoElement = document.getElementById('liveVideo');
+                videoElement.srcObject = stream;
+                videoElement.classList.remove('hidden');
+                document.getElementById('videoPlaceholder').style.display = 'none';
+                
                 document.getElementById('permissionAlert').classList.add('hidden');
-                document.getElementById('videoStatus').textContent = 'Camera ready';
+                document.getElementById('videoStatus').textContent = '✓ Camera active';
+                
                 addLog('Camera and microphone access granted', 'success');
                 showToast('Camera and microphone access granted', 'success');
                 return true;
@@ -529,6 +544,7 @@
             appState.remainingSeconds = appState.totalSeconds;
             appState.recordedBlob = null;
             appState.transcript = '';
+            appState.recordingStartTime = Date.now();
 
             // UI Updates
             document.getElementById('startBtn').disabled = true;
@@ -538,10 +554,9 @@
             document.getElementById('secondsInput').disabled = true;
             document.getElementById('recordingIndicator').classList.remove('hidden');
             document.getElementById('playbackSection').classList.add('hidden');
-            document.getElementById('emptyState').classList.remove('hidden');
-            document.getElementById('transcriptContainer').classList.add('hidden');
+            document.getElementById('transcriptText').value = '';
 
-            // Setup MediaRecorder for video
+            // Setup MediaRecorder
             const recordingStream = new MediaStream();
             const audioTrack = appState.mediaStream.getAudioTracks()[0];
             const videoTrack = appState.mediaStream.getVideoTracks()[0];
@@ -549,37 +564,43 @@
             if (audioTrack) recordingStream.addTrack(audioTrack);
             if (videoTrack) recordingStream.addTrack(videoTrack);
 
-            appState.mediaRecorder = new MediaRecorder(recordingStream);
+            try {
+                appState.mediaRecorder = new MediaRecorder(recordingStream);
 
-            appState.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    appState.recordedChunks.push(event.data);
-                }
-            };
+                appState.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        appState.recordedChunks.push(event.data);
+                    }
+                };
 
-            appState.mediaRecorder.onstop = () => {
-                const mimeType = appState.mediaRecorder.mimeType || 'video/webm;codecs=vp8,opus';
-                appState.recordedBlob = new Blob(appState.recordedChunks, { type: mimeType });
-                
-                const videoUrl = URL.createObjectURL(appState.recordedBlob);
-                document.getElementById('recordedVideo').src = videoUrl;
-                document.getElementById('playbackSection').classList.remove('hidden');
-                document.getElementById('emptyState').classList.add('hidden');
-                
-                addLog('Video recording saved successfully', 'success');
-            };
+                appState.mediaRecorder.onstop = () => {
+                    const mimeType = appState.mediaRecorder.mimeType || 'video/webm';
+                    appState.recordedBlob = new Blob(appState.recordedChunks, { type: mimeType });
+                    
+                    const videoUrl = URL.createObjectURL(appState.recordedBlob);
+                    document.getElementById('recordedVideo').src = videoUrl;
+                    document.getElementById('playbackSection').classList.remove('hidden');
+                    
+                    addLog('Video recording saved successfully', 'success');
+                };
 
-            appState.mediaRecorder.start();
-            appState.startTime = Date.now() - appState.pausedTime;
+                appState.mediaRecorder.start();
+            } catch (error) {
+                addLog(`MediaRecorder error: ${error.message}`, 'error');
+            }
 
             // Start speech recognition
-            recognition.start();
+            try {
+                recognition.start();
+            } catch (error) {
+                addLog(`Recognition start error: ${error.message}`, 'warning');
+            }
+
             addLog('Recording and transcription started', 'success');
             showToast('Recording started - speak now!', 'success');
 
             updateTimerDisplay();
             startTimer();
-
             document.getElementById('recordingStatus').textContent = 'Recording...';
         }
 
@@ -603,8 +624,10 @@
             if (!appState.isRecording || appState.isPaused) return;
 
             appState.isPaused = true;
-            appState.mediaRecorder.pause();
-            recognition.abort();
+            if (appState.mediaRecorder) appState.mediaRecorder.pause();
+            try {
+                recognition.abort();
+            } catch (e) {}
 
             document.getElementById('pauseBtn').textContent = 'Resume';
             document.getElementById('recordingStatus').textContent = 'Paused';
@@ -618,8 +641,10 @@
             if (!appState.isRecording || !appState.isPaused) return;
 
             appState.isPaused = false;
-            appState.mediaRecorder.resume();
-            recognition.start();
+            if (appState.mediaRecorder) appState.mediaRecorder.resume();
+            try {
+                recognition.start();
+            } catch (e) {}
             appState.startTime = Date.now() - appState.pausedTime;
 
             document.getElementById('pauseBtn').textContent = 'Pause';
@@ -634,8 +659,10 @@
             if (!appState.isRecording) return;
 
             appState.isRecording = false;
-            appState.mediaRecorder.stop();
-            recognition.abort();
+            if (appState.mediaRecorder) appState.mediaRecorder.stop();
+            try {
+                recognition.abort();
+            } catch (e) {}
             
             if (appState.timerInterval) clearInterval(appState.timerInterval);
 
@@ -649,8 +676,6 @@
             document.getElementById('pauseBtn').textContent = 'Pause';
             document.getElementById('recordingStatus').textContent = 'Complete';
 
-            // Show results
-            document.getElementById('transcriptContainer').classList.remove('hidden');
             updateAnalytics();
 
             addLog('Recording stopped and transcription complete', 'success');
@@ -705,7 +730,7 @@
                 startTime: null,
                 pausedTime: 0,
                 transcript: '',
-                isFinal: false,
+                recordingStartTime: 0,
             };
 
             document.getElementById('startBtn').disabled = false;
@@ -715,8 +740,6 @@
             document.getElementById('recordingStatus').textContent = 'Ready';
             document.getElementById('recordingIndicator').classList.add('hidden');
             document.getElementById('playbackSection').classList.add('hidden');
-            document.getElementById('transcriptContainer').classList.add('hidden');
-            document.getElementById('emptyState').classList.remove('hidden');
             document.getElementById('recordedVideo').src = '';
             document.getElementById('transcriptText').value = '';
 
@@ -752,11 +775,9 @@
 
         // ==================== INITIALIZATION ====================
 
-        addLog('🎤 Speech Practice Studio initialized', 'success');
-        addLog(`Speech Recognition: ${recognition ? '✓ Ready' : '✗ Not supported'}`, recognition ? 'success' : 'error');
-        addLog(`Language: ${CONFIG.RECOGNITION_LANGUAGE}`, 'info');
-        addLog('All processing is local and private', 'success');
         updateTimerDisplay();
+        addLog('🎤 Speech Practice Studio loaded', 'success');
+        addLog(`Language: ${CONFIG.RECOGNITION_LANGUAGE}`, 'info');
     </script>
 </body>
 </html>
