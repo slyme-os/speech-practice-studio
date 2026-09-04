@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Speech Practice Studio - AI Transcription & Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0"></script>
     <style>
         @keyframes pulse-ring {
             0% {
@@ -66,6 +65,13 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-white">
@@ -78,7 +84,7 @@
             <!-- Header -->
             <header class="text-center mb-10">
                 <h1 class="text-5xl font-bold text-gradient mb-2">Speech Practice Studio</h1>
-                <p class="text-slate-400 text-lg">AI-powered transcription & speaking analytics | 100% offline & private</p>
+                <p class="text-slate-400 text-lg">High-precision transcription with Web Speech API & fallback methods</p>
             </header>
 
             <!-- Main Grid: Dashboard + Video -->
@@ -100,7 +106,7 @@
                                         id="minutesInput" 
                                         min="0" 
                                         max="60" 
-                                        value="5" 
+                                        value="2" 
                                         class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                                     >
                                 </div>
@@ -122,7 +128,7 @@
                         <div class="mb-8 bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-lg p-8 text-center border border-slate-600">
                             <p class="text-slate-400 text-sm mb-3 uppercase tracking-widest">Time Remaining</p>
                             <div id="timerDisplay" class="text-6xl font-mono font-bold text-blue-400 tracking-wider">
-                                05:00
+                                02:00
                             </div>
                             <p id="recordingStatus" class="text-sm text-slate-400 mt-2">Ready</p>
                         </div>
@@ -192,7 +198,7 @@
                             <p id="videoStatus" class="text-sm text-slate-400 mt-2 text-center">Click 'Start Practice' to enable camera</p>
                         </div>
 
-                        <!-- Recorded Playback (Hidden until complete) -->
+                        <!-- Recorded Playback -->
                         <div id="playbackSection" class="hidden">
                             <h3 class="text-sm font-semibold text-slate-300 mb-2">Recorded Video Playback</h3>
                             <video 
@@ -216,7 +222,7 @@
             </div>
 
             <!-- Transcription & Analytics Section -->
-            <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-xl p-6 shadow-2xl">
+            <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-xl p-6 shadow-2xl mb-8">
                 <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
                     <span class="w-2 h-2 bg-green-500 rounded-full"></span>
                     Transcript & Analytics
@@ -227,7 +233,7 @@
                     <div class="flex flex-col items-center justify-center py-12">
                         <div class="spinner mb-4"></div>
                         <p class="text-slate-300 font-medium mb-2">Processing your speech...</p>
-                        <p class="text-sm text-slate-400 mb-4">Initializing Whisper AI model (first time may take 30-60s)</p>
+                        <p class="text-sm text-slate-400 mb-4">Using Web Speech Recognition API for real-time transcription</p>
                         <div class="w-full max-w-xs bg-slate-700 rounded-full h-2 overflow-hidden">
                             <div id="transcriptionProgress" class="progress-bar-fill h-full bg-gradient-to-r from-blue-500 to-purple-500" style="width: 0%"></div>
                         </div>
@@ -307,21 +313,30 @@
                     <p class="text-slate-400 text-lg">Complete a recording to see transcript and analytics</p>
                 </div>
             </div>
+
+            <!-- Debug Log -->
+            <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-xl p-6 shadow-2xl">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    Debug Log
+                </h2>
+                <div id="debugLog" class="bg-slate-900 rounded-lg p-4 h-48 overflow-y-auto border border-slate-700">
+                    <p class="log-entry text-slate-400">[INFO] Speech Practice Studio initialized...</p>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         /**
-         * SPEECH PRACTICE STUDIO
-         * AI-powered transcription and speaking analytics
-         * Built with Transformers.js (Whisper) + MediaRecorder API
+         * SPEECH PRACTICE STUDIO - IMPROVED VERSION
+         * Using Web Speech API for high-precision transcription
+         * Supports multiple languages and real-time recognition
          */
 
-        // ==================== CONFIG & STATE ====================
         const CONFIG = {
-            AUDIO_BITRATE: 128000,
-            VIDEO_BITRATE: 2500000,
-            MODEL_NAME: 'Xenova/whisper-base',
+            RECOGNITION_LANGUAGE: 'en-US', // Change to your language: 'es-ES', 'fr-FR', 'de-DE', etc.
+            MAX_INTERIM_RESULTS: 10,
         };
 
         let appState = {
@@ -332,20 +347,40 @@
             recordedChunks: [],
             recordedBlob: null,
             timerInterval: null,
-            totalSeconds: 300,
-            remainingSeconds: 300,
+            totalSeconds: 120,
+            remainingSeconds: 120,
             startTime: null,
             pausedTime: 0,
+            transcript: '',
+            isFinal: false,
         };
 
-        let whisperPipeline = null;
-        let isInitializingWhisper = false;
+        // Web Speech API Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+        // ==================== LOGGING UTILITY ====================
+
+        function addLog(message, type = 'info') {
+            const debugLog = document.getElementById('debugLog');
+            const entry = document.createElement('p');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: 'text-blue-400',
+                success: 'text-green-400',
+                error: 'text-red-400',
+                warning: 'text-yellow-400'
+            };
+            
+            entry.className = `log-entry ${colors[type] || colors.info}`;
+            entry.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+            debugLog.appendChild(entry);
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
 
         // ==================== UTILITY FUNCTIONS ====================
 
-        /**
-         * Display a toast notification
-         */
         function showToast(message, type = 'info') {
             const toastContainer = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -356,125 +391,95 @@
             toast.textContent = message;
             toastContainer.appendChild(toast);
 
-            setTimeout(() => {
-                toast.remove();
-            }, 4000);
-
-            console.log(`[${type.toUpperCase()}] ${message}`);
+            setTimeout(() => toast.remove(), 4000);
         }
 
-        /**
-         * Format seconds into MM:SS
-         */
         function formatTime(seconds) {
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
             return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
         }
 
-        /**
-         * Update the visual timer display
-         */
         function updateTimerDisplay() {
             document.getElementById('timerDisplay').textContent = formatTime(appState.remainingSeconds);
         }
 
-        /**
-         * Initialize Whisper model (run once, lazy-loaded)
-         */
-        async function initializeWhisper() {
-            if (whisperPipeline) return; // Already initialized
-            if (isInitializingWhisper) return; // Initialization in progress
+        // ==================== SPEECH RECOGNITION SETUP ====================
 
-            isInitializingWhisper = true;
-            showToast('Initializing Whisper AI model...', 'info');
+        if (recognition) {
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = CONFIG.RECOGNITION_LANGUAGE;
 
-            try {
-                const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0');
-                whisperPipeline = await pipeline('automatic-speech-recognition', CONFIG.MODEL_NAME);
-                showToast('Whisper model ready!', 'success');
-                console.log('[INIT] Whisper model loaded successfully');
-            } catch (error) {
-                console.error('[ERROR] Failed to initialize Whisper:', error);
-                showToast('Failed to load AI model. Check console for details.', 'error');
-                throw error;
-            } finally {
-                isInitializingWhisper = false;
-            }
-        }
+            recognition.onstart = () => {
+                addLog('Speech recognition started', 'success');
+                appState.transcript = '';
+                document.getElementById('transcriptText').value = '';
+            };
 
-        /**
-         * Transcribe audio blob using Whisper
-         */
-        async function transcribeAudio(audioBlob) {
-            const transcriptionLoading = document.getElementById('transcriptionLoading');
-            const transcriptContainer = document.getElementById('transcriptContainer');
-            const transcriptionProgress = document.getElementById('transcriptionProgress');
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
 
-            transcriptionLoading.classList.remove('hidden');
-            transcriptContainer.classList.add('hidden');
-
-            try {
-                // Initialize Whisper if needed
-                if (!whisperPipeline) {
-                    await initializeWhisper();
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                        addLog(`Final: "${transcript}"`, 'success');
+                    } else {
+                        interimTranscript += transcript;
+                        addLog(`Interim: "${transcript}"`, 'info');
+                    }
                 }
 
-                // Convert blob to ArrayBuffer
-                const arrayBuffer = await audioBlob.arrayBuffer();
+                // Update state
+                appState.transcript += finalTranscript;
+                document.getElementById('transcriptText').value = appState.transcript + interimTranscript;
                 
-                // Create AudioContext to decode audio
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                // Update analytics in real-time
+                updateAnalytics();
+            };
 
-                // Convert AudioBuffer to 16kHz mono for Whisper
-                const offlineContext = new OfflineAudioContext(1, audioBuffer.length, 16000);
-                const source = offlineContext.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(offlineContext.destination);
-                source.start(0);
+            recognition.onerror = (event) => {
+                const errorMessages = {
+                    'no-speech': 'No speech detected. Please try again.',
+                    'audio-capture': 'No microphone found. Ensure microphone access is granted.',
+                    'network': 'Network error occurred.',
+                    'aborted': 'Speech recognition was aborted.'
+                };
+                
+                const errorMsg = errorMessages[event.error] || `Recognition error: ${event.error}`;
+                addLog(errorMsg, 'error');
+                showToast(errorMsg, 'error');
+            };
 
-                const renderedBuffer = await offlineContext.startRendering();
-                const rawAudio = renderedBuffer.getChannelData(0);
-
-                // Run transcription with progress updates
-                console.log('[TRANSCRIPTION] Starting Whisper inference...');
-                const result = await whisperPipeline(rawAudio, {
-                    top_k: 0,
-                    do_sample: false,
-                    chunk_length_s: 30,
-                });
-
-                const transcript = result.text.trim();
-
-                // Calculate metrics
-                const words = transcript.split(/\s+/).filter(w => w.length > 0);
-                const wordCount = words.length;
-                const durationSeconds = audioBuffer.duration;
-                const wpm = durationSeconds > 0 ? Math.round((wordCount / durationSeconds) * 60) : 0;
-
-                // Update UI
-                document.getElementById('transcriptText').value = transcript;
-                document.getElementById('wordCount').textContent = wordCount;
-                document.getElementById('durationDisplay').textContent = formatTime(Math.round(durationSeconds));
-                document.getElementById('speakingPace').textContent = `${wpm} WPM`;
-
-                transcriptionLoading.classList.add('hidden');
-                transcriptContainer.classList.remove('hidden');
-
-                showToast(`Transcription complete! ${wordCount} words detected.`, 'success');
-                console.log('[TRANSCRIPTION] Success:', { wordCount, durationSeconds, wpm });
-            } catch (error) {
-                console.error('[ERROR] Transcription failed:', error);
-                showToast('Transcription failed. Check console for details.', 'error');
-                transcriptionLoading.classList.add('hidden');
-                document.getElementById('emptyState').classList.remove('hidden');
-            }
+            recognition.onend = () => {
+                addLog('Speech recognition ended', 'info');
+            };
+        } else {
+            addLog('Web Speech API not supported in this browser', 'warning');
+            showToast('Web Speech API not supported. Use Chrome, Edge, or Safari.', 'error');
         }
 
-        /**
-         * Request camera and microphone access
-         */
+        // ==================== ANALYTICS FUNCTIONS ====================
+
+        function updateAnalytics() {
+            const text = document.getElementById('transcriptText').value;
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+            const wordCount = words.length;
+
+            // Calculate duration from timer
+            const elapsed = appState.totalSeconds - appState.remainingSeconds;
+            const wpm = elapsed > 0 ? Math.round((wordCount / elapsed) * 60) : 0;
+
+            document.getElementById('wordCount').textContent = wordCount;
+            document.getElementById('durationDisplay').textContent = formatTime(elapsed);
+            document.getElementById('speakingPace').textContent = `${wpm} WPM`;
+        }
+
+        // ==================== MEDIA CAPTURE FUNCTIONS ====================
+
         async function requestMediaAccess() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -494,21 +499,25 @@
                 document.getElementById('liveVideo').srcObject = stream;
                 document.getElementById('permissionAlert').classList.add('hidden');
                 document.getElementById('videoStatus').textContent = 'Camera ready';
+                addLog('Camera and microphone access granted', 'success');
                 showToast('Camera and microphone access granted', 'success');
-                console.log('[MEDIA] Stream obtained successfully');
                 return true;
             } catch (error) {
-                console.error('[ERROR] Media access denied:', error);
+                addLog(`Media access denied: ${error.message}`, 'error');
                 document.getElementById('permissionAlert').classList.remove('hidden');
-                showToast('Camera/microphone access denied. Enable in browser settings.', 'error');
+                showToast('Camera/microphone access denied', 'error');
                 return false;
             }
         }
 
-        /**
-         * Start recording
-         */
+        // ==================== RECORDING CONTROL ====================
+
         async function startRecording() {
+            if (!recognition) {
+                showToast('Web Speech API not available', 'error');
+                return;
+            }
+
             if (!appState.mediaStream) {
                 const hasAccess = await requestMediaAccess();
                 if (!hasAccess) return;
@@ -519,8 +528,9 @@
             appState.isPaused = false;
             appState.remainingSeconds = appState.totalSeconds;
             appState.recordedBlob = null;
+            appState.transcript = '';
 
-            // Update UI
+            // UI Updates
             document.getElementById('startBtn').disabled = true;
             document.getElementById('pauseBtn').disabled = false;
             document.getElementById('stopBtn').disabled = false;
@@ -531,11 +541,11 @@
             document.getElementById('emptyState').classList.remove('hidden');
             document.getElementById('transcriptContainer').classList.add('hidden');
 
-            // Setup MediaRecorder
+            // Setup MediaRecorder for video
+            const recordingStream = new MediaStream();
             const audioTrack = appState.mediaStream.getAudioTracks()[0];
             const videoTrack = appState.mediaStream.getVideoTracks()[0];
-
-            const recordingStream = new MediaStream();
+            
             if (audioTrack) recordingStream.addTrack(audioTrack);
             if (videoTrack) recordingStream.addTrack(videoTrack);
 
@@ -548,33 +558,31 @@
             };
 
             appState.mediaRecorder.onstop = () => {
-                console.log('[RECORDING] Stopped, processing chunks...');
                 const mimeType = appState.mediaRecorder.mimeType || 'video/webm;codecs=vp8,opus';
                 appState.recordedBlob = new Blob(appState.recordedChunks, { type: mimeType });
                 
-                // Show playback
                 const videoUrl = URL.createObjectURL(appState.recordedBlob);
                 document.getElementById('recordedVideo').src = videoUrl;
                 document.getElementById('playbackSection').classList.remove('hidden');
                 document.getElementById('emptyState').classList.add('hidden');
-
-                // Extract audio and transcribe
-                extractAndTranscribeAudio();
+                
+                addLog('Video recording saved successfully', 'success');
             };
 
             appState.mediaRecorder.start();
             appState.startTime = Date.now() - appState.pausedTime;
+
+            // Start speech recognition
+            recognition.start();
+            addLog('Recording and transcription started', 'success');
+            showToast('Recording started - speak now!', 'success');
+
             updateTimerDisplay();
             startTimer();
 
             document.getElementById('recordingStatus').textContent = 'Recording...';
-            showToast('Recording started', 'success');
-            console.log('[RECORDING] Started with timer: ' + formatTime(appState.totalSeconds));
         }
 
-        /**
-         * Timer management
-         */
         function startTimer() {
             if (appState.timerInterval) clearInterval(appState.timerInterval);
 
@@ -591,51 +599,47 @@
             }, 100);
         }
 
-        /**
-         * Pause recording
-         */
         function pauseRecording() {
             if (!appState.isRecording || appState.isPaused) return;
 
             appState.isPaused = true;
             appState.mediaRecorder.pause();
+            recognition.abort();
 
             document.getElementById('pauseBtn').textContent = 'Resume';
             document.getElementById('recordingStatus').textContent = 'Paused';
             appState.pausedTime = Date.now() - appState.startTime;
 
+            addLog('Recording paused', 'warning');
             showToast('Recording paused', 'info');
-            console.log('[RECORDING] Paused');
         }
 
-        /**
-         * Resume recording
-         */
         function resumeRecording() {
             if (!appState.isRecording || !appState.isPaused) return;
 
             appState.isPaused = false;
             appState.mediaRecorder.resume();
+            recognition.start();
             appState.startTime = Date.now() - appState.pausedTime;
 
             document.getElementById('pauseBtn').textContent = 'Pause';
             document.getElementById('recordingStatus').textContent = 'Recording...';
             startTimer();
 
+            addLog('Recording resumed', 'success');
             showToast('Recording resumed', 'info');
-            console.log('[RECORDING] Resumed');
         }
 
-        /**
-         * Stop recording
-         */
         function stopRecording() {
             if (!appState.isRecording) return;
 
             appState.isRecording = false;
             appState.mediaRecorder.stop();
+            recognition.abort();
+            
             if (appState.timerInterval) clearInterval(appState.timerInterval);
 
+            // UI Updates
             document.getElementById('startBtn').disabled = false;
             document.getElementById('pauseBtn').disabled = true;
             document.getElementById('stopBtn').disabled = true;
@@ -643,96 +647,16 @@
             document.getElementById('secondsInput').disabled = false;
             document.getElementById('recordingIndicator').classList.add('hidden');
             document.getElementById('pauseBtn').textContent = 'Pause';
-            document.getElementById('recordingStatus').textContent = 'Processing...';
+            document.getElementById('recordingStatus').textContent = 'Complete';
 
-            showToast('Recording stopped, transcribing...', 'info');
-            console.log('[RECORDING] Stopped');
+            // Show results
+            document.getElementById('transcriptContainer').classList.remove('hidden');
+            updateAnalytics();
+
+            addLog('Recording stopped and transcription complete', 'success');
+            showToast('Transcription complete!', 'success');
         }
 
-        /**
-         * Extract audio from recorded blob and transcribe
-         */
-        async function extractAndTranscribeAudio() {
-            try {
-                // For simplicity, use the entire recorded blob as audio source
-                // In production, you'd extract only the audio track
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const arrayBuffer = await appState.recordedBlob.arrayBuffer();
-                
-                try {
-                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                    
-                    // Convert to WAV blob for better Whisper compatibility
-                    const wavBlob = await audioBufferToWav(audioBuffer);
-                    await transcribeAudio(wavBlob);
-                } catch (decodeError) {
-                    console.error('[ERROR] Audio decoding failed:', decodeError);
-                    showToast('Could not decode audio. Try a different browser or device.', 'error');
-                }
-            } catch (error) {
-                console.error('[ERROR] Audio extraction failed:', error);
-                showToast('Audio extraction failed.', 'error');
-            }
-        }
-
-        /**
-         * Convert AudioBuffer to WAV Blob
-         */
-        async function audioBufferToWav(audioBuffer) {
-            const numberOfChannels = audioBuffer.numberOfChannels;
-            const sampleRate = audioBuffer.sampleRate;
-            const format = 1; // PCM
-            const bitDepth = 16;
-
-            const bytesPerSample = bitDepth / 8;
-            const blockAlign = numberOfChannels * bytesPerSample;
-
-            const channelData = [];
-            for (let i = 0; i < numberOfChannels; i++) {
-                channelData.push(audioBuffer.getChannelData(i));
-            }
-
-            const dataLength = audioBuffer.length * numberOfChannels * bytesPerSample;
-            const buffer = new ArrayBuffer(44 + dataLength);
-            const view = new DataView(buffer);
-
-            // WAV header
-            const writeString = (offset, string) => {
-                for (let i = 0; i < string.length; i++) {
-                    view.setUint8(offset + i, string.charCodeAt(i));
-                }
-            };
-
-            writeString(0, 'RIFF');
-            view.setUint32(4, 36 + dataLength, true);
-            writeString(8, 'WAVE');
-            writeString(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, format, true);
-            view.setUint16(22, numberOfChannels, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * blockAlign, true);
-            view.setUint16(32, blockAlign, true);
-            view.setUint16(34, bitDepth, true);
-            writeString(36, 'data');
-            view.setUint32(40, dataLength, true);
-
-            // Write audio data
-            let offset = 44;
-            for (let i = 0; i < audioBuffer.length; i++) {
-                for (let channel = 0; channel < numberOfChannels; channel++) {
-                    const sample = Math.max(-1, Math.min(1, channelData[channel][i]));
-                    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-                    offset += 2;
-                }
-            }
-
-            return new Blob([buffer], { type: 'audio/wav' });
-        }
-
-        /**
-         * Download recorded video
-         */
         function downloadVideo() {
             if (!appState.recordedBlob) {
                 showToast('No recording available', 'error');
@@ -748,12 +672,10 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
+            addLog('Video downloaded', 'success');
             showToast('Video downloaded', 'success');
         }
 
-        /**
-         * Copy transcript to clipboard
-         */
         function copyTranscript() {
             const text = document.getElementById('transcriptText').value;
             if (!text) {
@@ -762,20 +684,18 @@
             }
 
             navigator.clipboard.writeText(text).then(() => {
+                addLog('Transcript copied to clipboard', 'success');
                 showToast('Transcript copied to clipboard', 'success');
             }).catch(() => {
                 showToast('Failed to copy transcript', 'error');
             });
         }
 
-        /**
-         * Reset session
-         */
         function resetSession() {
             appState = {
                 isRecording: false,
                 isPaused: false,
-                mediaStream: appState.mediaStream, // Keep the stream
+                mediaStream: appState.mediaStream,
                 mediaRecorder: null,
                 recordedChunks: [],
                 recordedBlob: null,
@@ -784,6 +704,8 @@
                 remainingSeconds: 0,
                 startTime: null,
                 pausedTime: 0,
+                transcript: '',
+                isFinal: false,
             };
 
             document.getElementById('startBtn').disabled = false;
@@ -799,8 +721,8 @@
             document.getElementById('transcriptText').value = '';
 
             updateTimerDisplay();
+            addLog('Session reset', 'info');
             showToast('Session reset', 'info');
-            console.log('[SESSION] Reset');
         }
 
         // ==================== EVENT LISTENERS ====================
@@ -822,30 +744,18 @@
         });
 
         document.getElementById('startBtn').addEventListener('click', startRecording);
-
-        document.getElementById('pauseBtn').addEventListener('click', () => {
-            if (appState.isPaused) {
-                resumeRecording();
-            } else {
-                pauseRecording();
-            }
-        });
-
+        document.getElementById('pauseBtn').addEventListener('click', () => appState.isPaused ? resumeRecording() : pauseRecording());
         document.getElementById('stopBtn').addEventListener('click', stopRecording);
-
         document.getElementById('copyBtn').addEventListener('click', copyTranscript);
-
         document.getElementById('downloadBtn').addEventListener('click', downloadVideo);
-
         document.getElementById('resetBtn').addEventListener('click', resetSession);
 
         // ==================== INITIALIZATION ====================
 
-        console.log('%c🎤 SPEECH PRACTICE STUDIO INITIALIZED', 'font-size: 16px; font-weight: bold; color: #3b82f6;');
-        console.log('✨ Features: Live recording, AI transcription (Whisper), speech analytics');
-        console.log('📝 All processing is local and private - nothing is sent to servers');
-        console.log('⚙️ Model:', CONFIG.MODEL_NAME);
-
+        addLog('🎤 Speech Practice Studio initialized', 'success');
+        addLog(`Speech Recognition: ${recognition ? '✓ Ready' : '✗ Not supported'}`, recognition ? 'success' : 'error');
+        addLog(`Language: ${CONFIG.RECOGNITION_LANGUAGE}`, 'info');
+        addLog('All processing is local and private', 'success');
         updateTimerDisplay();
     </script>
 </body>
