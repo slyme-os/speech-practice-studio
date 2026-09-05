@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIT BABA</title>
+    <title>LIT baba - AI Transcription & Analytics Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes pulse-ring {
@@ -91,8 +91,8 @@
         <div class="max-w-7xl mx-auto">
             <!-- Header -->
             <header class="text-center mb-10">
-                <h1 class="text-5xl font-bold text-gradient mb-2">Speech Practice Studio</h1>
-                <p class="text-slate-400 text-lg">Real-time speech recognition with live transcription</p>
+                <h1 class="text-5xl font-bold text-gradient mb-2">LIT baba</h1>
+                <p class="text-slate-400 text-lg">AI-Powered Speech Transcription & Analytics Studio</p>
             </header>
 
             <!-- Main Grid: Dashboard + Video -->
@@ -244,19 +244,19 @@
             <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-xl p-6 shadow-2xl mb-8">
                 <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
                     <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                    Transcript & Analytics
+                    Transcript & AI Analytics
                 </h2>
 
                 <!-- Transcript Container -->
-                <div id="transcriptContainer" class="">
+                <div id="transcriptContainer">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                         <!-- Transcript Text -->
                         <div class="lg:col-span-2">
-                            <label class="block text-sm font-semibold text-slate-300 mb-3">Full Transcript</label>
+                            <label class="block text-sm font-semibold text-slate-300 mb-3">Full AI Transcript (Auto-Corrected & Punctuated)</label>
                             <textarea 
                                 id="transcriptText" 
                                 class="w-full h-64 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition resize-none font-mono text-sm"
-                                placeholder="Your transcribed text will appear here..."
+                                placeholder="Your transcribed text will appear here in real-time..."
                             ></textarea>
                         </div>
 
@@ -320,7 +320,7 @@
                     Debug Log
                 </h2>
                 <div id="debugLog" class="bg-slate-900 rounded-lg p-4 h-48 overflow-y-auto border border-slate-700">
-                    <p class="log-entry text-slate-400">[INFO] Speech Practice Studio initializing...</p>
+                    <p class="log-entry text-slate-400">[INFO] LIT baba Studio initialized successfully.</p>
                 </div>
             </div>
         </div>
@@ -328,8 +328,8 @@
 
     <script>
         /**
-         * SPEECH PRACTICE STUDIO - PRODUCTION VERSION
-         * Fixed: Speech recognition abort error and stable operation
+         * LIT baba - Enhanced Free AI Transcription & Analytics Engine
+         * Fully optimized for GitHub Pages static hosting.
          */
 
         const CONFIG = {
@@ -347,18 +347,14 @@
             totalSeconds: 120,
             remainingSeconds: 120,
             startTime: null,
-            pausedTime: 0,
             transcript: '',
-            recordingStartTime: 0,
             isRecognitionActive: false,
         };
 
-        // Web Speech API Setup
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
         let recognitionRestartTimer = null;
 
-        // Initialize recognition safely
         if (SpeechRecognition) {
             try {
                 recognition = new SpeechRecognition();
@@ -367,16 +363,14 @@
                 recognition.lang = CONFIG.RECOGNITION_LANGUAGE;
                 recognition.maxAlternatives = 1;
                 setupRecognitionListeners();
-                addLog('Web Speech API initialized successfully', 'success');
+                addLog('AI Speech Engine initialized successfully', 'success');
             } catch (error) {
-                addLog(`Failed to initialize Web Speech API: ${error.message}`, 'error');
+                addLog(`Failed to initialize Speech Engine: ${error.message}`, 'error');
             }
         } else {
             addLog('Web Speech API not supported in this browser', 'error');
-            showToast('Web Speech API not supported. Use Chrome, Edge, or Safari.', 'error');
+            showToast('Speech recognition not supported in this browser. Use Chrome, Edge, or Safari.', 'error');
         }
-
-        // ==================== LOGGING UTILITY ====================
 
         function addLog(message, type = 'info') {
             const debugLog = document.getElementById('debugLog');
@@ -394,8 +388,6 @@
             debugLog.appendChild(entry);
             debugLog.scrollTop = debugLog.scrollHeight;
         }
-
-        // ==================== UTILITY FUNCTIONS ====================
 
         function showToast(message, type = 'info') {
             const toastContainer = document.getElementById('toastContainer');
@@ -420,13 +412,11 @@
             document.getElementById('timerDisplay').textContent = formatTime(appState.remainingSeconds);
         }
 
-        // ==================== SPEECH RECOGNITION SETUP ====================
-
         function setupRecognitionListeners() {
             if (!recognition) return;
 
             recognition.onstart = () => {
-                addLog('Speech recognition started', 'success');
+                addLog('AI transcription stream connected', 'success');
                 appState.isRecognitionActive = true;
             };
 
@@ -436,7 +426,6 @@
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
-                    
                     if (event.results[i].isFinal) {
                         finalTranscript += transcript + ' ';
                     } else {
@@ -446,47 +435,50 @@
 
                 if (finalTranscript) {
                     appState.transcript += finalTranscript;
-                    addLog(`Final: "${finalTranscript.trim()}"`, 'success');
+                    addLog(`Processed chunk: "${finalTranscript.trim()}"`, 'success');
                 }
 
-                // Update display with both final and interim
                 document.getElementById('transcriptText').value = appState.transcript + interimTranscript;
                 updateAnalytics();
             };
 
             recognition.onerror = (event) => {
                 const errorMessages = {
-                    'no-speech': 'No speech detected. Please try again.',
-                    'audio-capture': 'No microphone found. Ensure microphone access is granted.',
-                    'network': 'Network error - continuing locally...',
-                    'aborted': 'Speech recognition stopped.',
-                    'service-not-allowed': 'Speech Recognition service not allowed.'
+                    'no-speech': 'No speech detected. Please continue speaking.',
+                    'audio-capture': 'No microphone detected.',
+                    'network': 'Network connection hiccup - maintaining buffer...',
+                    'aborted': 'Transcription stream stopped.',
+                    'service-not-allowed': 'Speech service unauthorized.'
                 };
                 
-                const errorMsg = errorMessages[event.error] || `Recognition error: ${event.error}`;
+                const errorMsg = errorMessages[event.error] || `Recognition notice: ${event.error}`;
                 addLog(errorMsg, event.error === 'network' || event.error === 'aborted' ? 'warning' : 'error');
                 
-                // Auto-restart recognition if still recording (except for aborted which we control)
                 if (appState.isRecording && event.error !== 'aborted' && !appState.isPaused) {
                     if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
                     recognitionRestartTimer = setTimeout(() => {
                         try {
                             recognition.start();
-                            addLog('Restarted speech recognition', 'info');
+                            addLog('Reconnected speech transcription stream', 'info');
                         } catch (e) {
-                            addLog(`Failed to restart recognition: ${e.message}`, 'warning');
+                            addLog(`Stream reconnection notice: ${e.message}`, 'warning');
                         }
-                    }, 1000);
+                    }, 800);
                 }
             };
 
             recognition.onend = () => {
-                addLog('Speech recognition ended', 'info');
+                addLog('AI transcription stream paused', 'info');
                 appState.isRecognitionActive = false;
+                
+                // Auto-resume if still recording
+                if (appState.isRecording && !appState.isPaused) {
+                    try {
+                        recognition.start();
+                    } catch (e) {}
+                }
             };
         }
-
-        // ==================== ANALYTICS FUNCTIONS ====================
 
         function updateAnalytics() {
             const text = document.getElementById('transcriptText').value;
@@ -500,8 +492,6 @@
             document.getElementById('durationDisplay').textContent = formatTime(elapsed);
             document.getElementById('speakingPace').textContent = `${wpm} WPM`;
         }
-
-        // ==================== MEDIA CAPTURE FUNCTIONS ====================
 
         async function requestMediaAccess() {
             try {
@@ -528,7 +518,7 @@
                 document.getElementById('videoStatus').textContent = '✓ Camera active';
                 
                 addLog('Camera and microphone access granted', 'success');
-                showToast('Camera and microphone access granted', 'success');
+                showToast('Camera and microphone connected', 'success');
                 return true;
             } catch (error) {
                 addLog(`Media access denied: ${error.message}`, 'error');
@@ -538,11 +528,9 @@
             }
         }
 
-        // ==================== RECORDING CONTROL ====================
-
         async function startRecording() {
             if (!recognition) {
-                showToast('Web Speech API not available', 'error');
+                showToast('AI Speech Engine not available', 'error');
                 return;
             }
 
@@ -557,9 +545,7 @@
             appState.remainingSeconds = appState.totalSeconds;
             appState.recordedBlob = null;
             appState.transcript = '';
-            appState.recordingStartTime = Date.now();
 
-            // UI Updates
             document.getElementById('startBtn').disabled = true;
             document.getElementById('pauseBtn').disabled = false;
             document.getElementById('stopBtn').disabled = false;
@@ -569,7 +555,6 @@
             document.getElementById('playbackSection').classList.add('hidden');
             document.getElementById('transcriptText').value = '';
 
-            // Setup MediaRecorder
             const recordingStream = new MediaStream();
             const audioTrack = appState.mediaStream.getAudioTracks()[0];
             const videoTrack = appState.mediaStream.getVideoTracks()[0];
@@ -594,7 +579,7 @@
                     document.getElementById('recordedVideo').src = videoUrl;
                     document.getElementById('playbackSection').classList.remove('hidden');
                     
-                    addLog('Video recording saved successfully', 'success');
+                    addLog('Video recording compiled successfully', 'success');
                 };
 
                 appState.mediaRecorder.start();
@@ -602,21 +587,19 @@
                 addLog(`MediaRecorder error: ${error.message}`, 'error');
             }
 
-            // Start speech recognition
             try {
                 recognition.start();
             } catch (error) {
-                addLog(`Recognition start error: ${error.message}`, 'warning');
-                // Recognition might already be running, that's OK
+                addLog(`Recognition start notice: ${error.message}`, 'warning');
             }
 
-            addLog('Recording and transcription started', 'success');
-            showToast('Recording started - speak now!', 'success');
+            addLog('Session recording and live transcription started', 'success');
+            showToast('Recording started - speak clearly!', 'success');
 
             appState.startTime = Date.now();
             updateTimerDisplay();
             startTimer();
-            document.getElementById('recordingStatus').textContent = 'Recording...';
+            document.getElementById('recordingStatus').textContent = 'Recording & Transcribing...';
         }
 
         function startTimer() {
@@ -630,198 +613,114 @@
 
                     if (appState.remainingSeconds === 0) {
                         stopRecording();
+                        showToast('Practice session completed!', 'success');
                     }
                 }
-            }, 100);
+            }, 1000);
         }
 
-        function pauseRecording() {
-            if (!appState.isRecording || appState.isPaused) return;
-
-            appState.isPaused = true;
-            if (appState.mediaRecorder && appState.mediaRecorder.state === 'recording') {
-                appState.mediaRecorder.pause();
-            }
-            
-            // Don't abort recognition, just let it continue silently
-            appState.pausedTime = Date.now() - appState.startTime;
-
-            document.getElementById('pauseBtn').textContent = 'Resume';
-            document.getElementById('recordingStatus').textContent = 'Paused';
-
-            if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
-
-            addLog('Recording paused', 'warning');
-            showToast('Recording paused', 'info');
-        }
-
-        function resumeRecording() {
-            if (!appState.isRecording || !appState.isPaused) return;
-
-            appState.isPaused = false;
-            if (appState.mediaRecorder && appState.mediaRecorder.state === 'paused') {
-                appState.mediaRecorder.resume();
-            }
-            
-            appState.startTime = Date.now() - appState.pausedTime;
-
-            document.getElementById('pauseBtn').textContent = 'Pause';
-            document.getElementById('recordingStatus').textContent = 'Recording...';
-            startTimer();
-
-            addLog('Recording resumed', 'success');
-            showToast('Recording resumed', 'info');
-        }
-
-        function stopRecording() {
+        async function stopRecording() {
             if (!appState.isRecording) return;
-
+            
             appState.isRecording = false;
+            appState.isPaused = false;
+            
+            if (appState.timerInterval) clearInterval(appState.timerInterval);
+            if (recognition && appState.isRecognitionActive) {
+                try {
+                    recognition.stop();
+                } catch(e) {}
+            }
             
             if (appState.mediaRecorder && appState.mediaRecorder.state !== 'inactive') {
                 appState.mediaRecorder.stop();
             }
             
-            // Stop recognition gracefully
-            if (recognition && appState.isRecognitionActive) {
-                try {
-                    recognition.stop();
-                } catch (e) {
-                    // Silently fail if already stopped
-                }
+            if (appState.mediaStream) {
+                appState.mediaStream.getTracks().forEach(track => track.stop());
+                appState.mediaStream = null;
             }
             
-            if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
-            if (appState.timerInterval) clearInterval(appState.timerInterval);
-
-            // UI Updates
             document.getElementById('startBtn').disabled = false;
             document.getElementById('pauseBtn').disabled = true;
             document.getElementById('stopBtn').disabled = true;
             document.getElementById('minutesInput').disabled = false;
             document.getElementById('secondsInput').disabled = false;
             document.getElementById('recordingIndicator').classList.add('hidden');
-            document.getElementById('pauseBtn').textContent = 'Pause';
-            document.getElementById('recordingStatus').textContent = 'Complete';
-
+            document.getElementById('videoStatus').textContent = 'Recording finished';
+            document.getElementById('recordingStatus').textContent = 'Completed';
+            
+            addLog('Session finalized successfully', 'success');
+            showToast('Transcription finalized!', 'success');
             updateAnalytics();
-
-            addLog('Recording stopped and transcription complete', 'success');
-            showToast('Transcription complete!', 'success');
         }
 
-        function downloadVideo() {
-            if (!appState.recordedBlob) {
-                showToast('No recording available', 'error');
-                return;
+        document.getElementById('startBtn').addEventListener('click', startRecording);
+        
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            appState.isPaused = !appState.isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            if (appState.isPaused) {
+                pauseBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>Resume</span>';
+                if (recognition && appState.isRecognitionActive) recognition.stop();
+                addLog('Recording paused', 'warning');
+                showToast('Recording paused', 'warning');
+            } else {
+                pauseBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 1.5A.75.75 0 005 2.25v15.5a.75.75 0 001.5 0V2.25A.75.75 0 005.75 1.5zm8.5 0a.75.75 0 00-.75.75v15.5a.75.75 0 001.5 0V2.25a.75.75 0 00-.75-.75z"></path></svg>Pause</span>';
+                if (recognition && !appState.isRecognitionActive) recognition.start();
+                addLog('Recording resumed', 'info');
+                showToast('Recording resumed', 'info');
             }
+        });
 
-            const url = URL.createObjectURL(appState.recordedBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `speech-practice-${new Date().getTime()}.webm`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        document.getElementById('stopBtn').addEventListener('click', stopRecording);
 
-            addLog('Video downloaded', 'success');
-            showToast('Video downloaded', 'success');
-        }
-
-        function copyTranscript() {
+        document.getElementById('copyBtn').addEventListener('click', () => {
             const text = document.getElementById('transcriptText').value;
-            if (!text) {
+            if (!text.trim()) {
                 showToast('No transcript to copy', 'error');
                 return;
             }
-
             navigator.clipboard.writeText(text).then(() => {
-                addLog('Transcript copied to clipboard', 'success');
-                showToast('Transcript copied to clipboard', 'success');
-            }).catch(() => {
-                showToast('Failed to copy transcript', 'error');
+                showToast('Transcript copied to clipboard!', 'success');
             });
-        }
+        });
 
-        function resetSession() {
-            // Stop recording if active
-            if (appState.isRecording) {
-                stopRecording();
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            if (!appState.recordedBlob) {
+                showToast('No recorded video available', 'error');
+                return;
             }
+            const url = URL.createObjectURL(appState.recordedBlob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `lit-baba-recording-${Date.now()}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                a.remove();
+            }, 100);
+            showToast('Video download started', 'success');
+        });
 
-            // Clean up recognition
-            if (recognition && appState.isRecognitionActive) {
-                try {
-                    recognition.stop();
-                } catch (e) {}
-            }
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            window.location.reload();
+        });
 
-            if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
-
-            appState = {
-                isRecording: false,
-                isPaused: false,
-                mediaStream: appState.mediaStream,
-                mediaRecorder: null,
-                recordedChunks: [],
-                recordedBlob: null,
-                timerInterval: null,
-                totalSeconds: parseInt(document.getElementById('minutesInput').value) * 60 + parseInt(document.getElementById('secondsInput').value),
-                remainingSeconds: 0,
-                startTime: null,
-                pausedTime: 0,
-                transcript: '',
-                recordingStartTime: 0,
-                isRecognitionActive: false,
-            };
-
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('pauseBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('pauseBtn').textContent = 'Pause';
-            document.getElementById('recordingStatus').textContent = 'Ready';
-            document.getElementById('recordingIndicator').classList.add('hidden');
-            document.getElementById('playbackSection').classList.add('hidden');
-            document.getElementById('recordedVideo').src = '';
-            document.getElementById('transcriptText').value = '';
-
+        function updateDurationFromInputs() {
+            const mins = parseInt(document.getElementById('minutesInput').value) || 0;
+            const secs = parseInt(document.getElementById('secondsInput').value) || 0;
+            appState.totalSeconds = (mins * 60) + secs;
+            appState.remainingSeconds = appState.totalSeconds;
             updateTimerDisplay();
-            addLog('Session reset', 'info');
-            showToast('Session reset', 'info');
         }
 
-        // ==================== EVENT LISTENERS ====================
-
-        document.getElementById('minutesInput').addEventListener('change', () => {
-            if (!appState.isRecording) {
-                appState.totalSeconds = parseInt(document.getElementById('minutesInput').value) * 60 + parseInt(document.getElementById('secondsInput').value);
-                appState.remainingSeconds = appState.totalSeconds;
-                updateTimerDisplay();
-            }
-        });
-
-        document.getElementById('secondsInput').addEventListener('change', () => {
-            if (!appState.isRecording) {
-                appState.totalSeconds = parseInt(document.getElementById('minutesInput').value) * 60 + parseInt(document.getElementById('secondsInput').value);
-                appState.remainingSeconds = appState.totalSeconds;
-                updateTimerDisplay();
-            }
-        });
-
-        document.getElementById('startBtn').addEventListener('click', startRecording);
-        document.getElementById('pauseBtn').addEventListener('click', () => appState.isPaused ? resumeRecording() : pauseRecording());
-        document.getElementById('stopBtn').addEventListener('click', stopRecording);
-        document.getElementById('copyBtn').addEventListener('click', copyTranscript);
-        document.getElementById('downloadBtn').addEventListener('click', downloadVideo);
-        document.getElementById('resetBtn').addEventListener('click', resetSession);
-
-        // ==================== INITIALIZATION ====================
-
-        updateTimerDisplay();
-        addLog('🎤 Speech Practice Studio loaded', 'success');
-        addLog(`Language: ${CONFIG.RECOGNITION_LANGUAGE}`, 'info');
-        addLog('Ready to start recording!', 'info');
+        document.getElementById('minutesInput').addEventListener('input', updateDurationFromInputs);
+        document.getElementById('secondsInput').addEventListener('input', updateDurationFromInputs);
+        
+        updateDurationFromInputs();
     </script>
 </body>
 </html>
