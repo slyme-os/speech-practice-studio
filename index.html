@@ -3,339 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIT baba - AI Transcription & Analytics Studio</title>
+    <title>LIT baba - AI Speech Practice & Transcription Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @keyframes pulse-ring {
-            0% {
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0f0d;
+            color: #e2e8f0;
         }
-
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 14px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
         .recording-pulse {
             animation: pulse-ring 2s infinite;
         }
-
         .mirror-video {
             transform: scaleX(-1);
         }
-
         .spinner {
-            border: 4px solid rgba(59, 130, 246, 0.1);
-            border-top: 4px solid #3b82f6;
+            border: 3px solid rgba(16, 185, 129, 0.1);
+            border-top: 3px solid #10b981;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
         .toast-enter {
             animation: slideIn 0.3s ease-out;
         }
-
         @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-
-        .progress-bar-fill {
-            transition: width 0.3s ease;
-        }
-
         .text-gradient {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-
+        .cyber-card {
+            background: rgba(17, 34, 22, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
         .log-entry {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
             line-height: 1.4;
             word-break: break-all;
         }
-
-        .video-placeholder {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #64748b;
-        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen text-white">
-    <!-- Toast Container -->
+<body class="min-h-screen text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-black">
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
     <!-- Main Container -->
-    <div class="min-h-screen p-6 md:p-10">
-        <div class="max-w-7xl mx-auto">
-            <!-- Header -->
-            <header class="text-center mb-10">
-                <h1 class="text-5xl font-bold text-gradient mb-2">LIT baba</h1>
-                <p class="text-slate-400 text-lg">AI-Powered Speech Transcription & Analytics Studio</p>
-            </header>
+    <div class="max-w-7xl w-full mx-auto p-4 md:p-8 flex-grow">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 text-xs font-mono mb-3">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Browser AI Engine (Whisper WASM) • 100% Free & Private
+            </div>
+            <h1 class="text-4xl md:text-6xl font-ext(-bold) font-bold text-gradient tracking-tight mb-2">LIT baba</h1>
+            <p class="text-slate-400 text-sm md:text-base">AI Speech Practice & Client-Side Whisper Transcription Studio</p>
+        </header>
 
-            <!-- Main Grid: Dashboard + Video -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <!-- Control Panel -->
-                <div class="lg:col-span-1">
-                    <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-xl p-6 shadow-2xl">
-                        <!-- Timer Configuration -->
-                        <div class="mb-8">
-                            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                Timer Setup
-                            </h2>
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-sm font-medium text-slate-300 mb-2">Minutes</label>
-                                    <input 
-                                        type="number" 
-                                        id="minutesInput" 
-                                        min="0" 
-                                        max="60" 
-                                        value="2" 
-                                        class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                    >
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-slate-300 mb-2">Seconds</label>
-                                    <input 
-                                        type="number" 
-                                        id="secondsInput" 
-                                        min="0" 
-                                        max="59" 
-                                        value="0" 
-                                        class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                    >
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Visual Countdown Timer -->
-                        <div class="mb-8 bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-lg p-8 text-center border border-slate-600">
-                            <p class="text-slate-400 text-sm mb-3 uppercase tracking-widest">Time Remaining</p>
-                            <div id="timerDisplay" class="text-6xl font-mono font-bold text-blue-400 tracking-wider">
-                                02:00
-                            </div>
-                            <p id="recordingStatus" class="text-sm text-slate-400 mt-2">Ready</p>
-                        </div>
-
-                        <!-- Recording Indicator -->
-                        <div id="recordingIndicator" class="hidden mb-4 p-3 bg-red-900/30 border border-red-700 rounded-lg flex items-center gap-2">
-                            <div class="w-3 h-3 bg-red-500 rounded-full recording-pulse"></div>
-                            <span class="text-sm font-medium">Recording in progress</span>
-                        </div>
-
-                        <!-- Control Buttons -->
-                        <div class="space-y-3">
-                            <button 
-                                id="startBtn" 
-                                class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95"
-                            >
-                                <span class="flex items-center justify-center gap-2">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path>
-                                    </svg>
-                                    Start Practice
-                                </span>
-                            </button>
-                            <button 
-                                id="pauseBtn" 
-                                disabled
-                                class="w-full px-4 py-3 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold transition-all duration-200"
-                            >
-                                <span class="flex items-center justify-center gap-2">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M5.75 1.5A.75.75 0 005 2.25v15.5a.75.75 0 001.5 0V2.25A.75.75 0 005.75 1.5zm8.5 0a.75.75 0 00-.75.75v15.5a.75.75 0 001.5 0V2.25a.75.75 0 00-.75-.75z"></path>
-                                    </svg>
-                                    Pause
-                                </span>
-                            </button>
-                            <button 
-                                id="stopBtn" 
-                                disabled
-                                class="w-full px-4 py-3 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold transition-all duration-200"
-                            >
-                                <span class="flex items-center justify-center gap-2">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M4 2a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V2zm2 0a1 1 0 011-1h6a1 1 0 011 1v12a1 1 0 01-1 1H7a1 1 0 01-1-1V2z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Stop & Transcribe
-                                </span>
-                            </button>
-                        </div>
+        <div id="modelStatusBanner" class="cyber-card rounded-xl p-4 mb-8 shadow-xl border-emerald-500/40">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div id="modelSpinner" class="spinner"></div>
+                    <div>
+                        <h2 id="modelTitle" class="font-semibold text-emerald-400">Loading AI Speech Model (Whisper Tiny)...</h2>
+                        <p id="modelDesc" class="text-xs text-slate-400">Downloading ONNX weights locally into browser cache (~75MB on first load only).</p>
                     </div>
                 </div>
+                <div class="w-full md:w-64 bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-700">
+                    <div id="modelProgressFill" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+        </div>
 
-                <!-- Video & Media Preview -->
-                <div class="lg:col-span-2">
-                    <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-xl p-6 shadow-2xl">
-                        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                            <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
-                            Camera & Audio Preview
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-1 space-y-6">
+                <div class="cyber-card rounded-xl p-6 shadow-2xl">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-400">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                        Session Timer
+                    </h2>
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Minutes</label>
+                            <input type="number" id="minutesInput" min="0" max="60" value="2" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-emerald-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Seconds</label>
+                            <input type="number" id="secondsInput" min="0" max="59" value="0" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono focus:outline-none focus:border-emerald-500 transition">
+                        </div>
+                    </div>
+
+                    <div class="mb-6 bg-slate-950/80 rounded-xl p-6 text-center border border-emerald-500/20">
+                        <p class="text-slate-400 text-xs mb-2 uppercase tracking-widest font-mono">Time Remaining</p>
+                        <div id="timerDisplay" class="text-5xl font-mono font-bold text-emerald-400 tracking-wider">02:00</div>
+                        <p id="recordingStatus" class="text-xs text-slate-400 mt-2 font-mono">Ready to record</p>
+                    </div>
+
+                    <div id="recordingIndicator" class="hidden mb-4 p-3 bg-red-950/40 border border-red-800/60 rounded-lg flex items-center gap-2">
+                        <div class="w-3 h-3 bg-red-500 rounded-full recording-pulse"></div>
+                        <span class="text-xs font-medium text-red-300">Microphone & Video Recording active</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <button id="startBtn" disabled class="w-full px-4 py-3 bg-emerald-700 opacity-50 cursor-not-allowed hover:bg-emerald-600 rounded-lg font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2 text-black">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>
+                            Start Practice & Record
+                        </button>
+                        <button id="pauseBtn" disabled class="w-full px-4 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 text-slate-300">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 1.5A.75.75 0 005 2.25v15.5a.75.75 0 001.5 0V2.25A.75.75 0 005.75 1.5zm8.5 0a.75.75 0 00-.75.75v15.5a.75.75 0 001.5 0V2.25a.75.75 0 00-.75-.75z"></path></svg>
+                            Pause
+                        </button>
+                        <button id="stopBtn" disabled class="w-full px-4 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2 text-black font-bold">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V2zm2 0a1 1 0 011-1h6a1 1 0 011 1v12a1 1 0 01-1 1H7a1 1 0 01-1-1V2z" clip-rule="evenodd"></path></svg>
+                            Stop & Run AI Whisper Transcription
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="cyber-card rounded-xl p-6 shadow-2xl h-full flex flex-col justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-400">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            Camera & Audio Monitor
                         </h2>
-
-                        <!-- Live Video Preview -->
-                        <div class="mb-4">
-                            <div id="videoContainer" class="w-full h-64 md:h-80 bg-slate-900 rounded-lg border border-slate-600 overflow-hidden flex items-center justify-center video-placeholder">
-                                <video 
-                                    id="liveVideo" 
-                                    class="w-full h-full mirror-video object-cover hidden"
-                                    muted
-                                    playsinline
-                                    autoplay
-                                ></video>
-                                <div id="videoPlaceholder" class="text-center">
-                                    <svg class="w-16 h-16 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                    </svg>
-                                    <p class="text-slate-400">Click 'Start Practice' to enable camera</p>
-                                </div>
+                        <div class="relative w-full h-64 md:h-72 bg-slate-950 rounded-xl border border-emerald-500/20 overflow-hidden flex items-center justify-center mb-4">
+                            <video id="liveVideo" class="w-full h-full mirror-video object-cover hidden" muted playsinline autoplay></video>
+                            <div id="videoPlaceholder" class="text-center p-6">
+                                <svg class="w-14 h-14 mx-auto mb-3 text-emerald-600/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                <p class="text-slate-400 text-sm">Click 'Start Practice & Record' to activate camera & mic</p>
                             </div>
-                            <p id="videoStatus" class="text-sm text-slate-400 mt-2 text-center">Camera not active</p>
                         </div>
+                        
+                        <div id="playbackSection" class="hidden mt-4">
+                            <h3 class="text-xs font-mono uppercase text-slate-400 mb-2">Recorded Session Playback</h3>
+                            <video id="recordedVideo" class="w-full h-48 bg-slate-950 rounded-lg border border-slate-700 object-cover" controls playsinline></video>
+                        </div>
+                    </div>
 
-                        <!-- Recorded Playback -->
-                        <div id="playbackSection" class="hidden">
-                            <h3 class="text-sm font-semibold text-slate-300 mb-2">Recorded Video Playback</h3>
-                            <video 
-                                id="recordedVideo" 
-                                class="w-full h-64 md:h-80 bg-slate-900 rounded-lg border border-slate-600 object-cover mb-3"
-                                controls
-                                playsinline
-                            ></video>
-                        </div>
+                    <div id="permissionAlert" class="hidden mt-4 p-3 bg-amber-950/40 border border-amber-800/60 rounded-lg text-xs text-amber-200 flex items-center gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                        <span>Microphone/Camera permission required. Please enable in your browser settings.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                        <!-- Permission Status -->
-                        <div id="permissionAlert" class="hidden p-4 bg-yellow-900/30 border border-yellow-700 rounded-lg">
-                            <p class="text-sm text-yellow-200 flex items-start gap-2">
-                                <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                                </svg>
-                                <span>Camera/microphone access required. Please enable permissions in your browser settings.</span>
-                            </p>
-                        </div>
+        <div class="cyber-card rounded-xl p-6 shadow-2xl mb-8">
+            <h2 class="text-xl font-semibold mb-6 flex items-center gap-2 text-emerald-400">
+                <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                AI Whisper Transcript & Analytics
+            </h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="lg:col-span-2 flex flex-col">
+                    <label class="block text-xs font-mono uppercase text-slate-400 mb-2">Full Transcribed Text (Whisper AI)</label>
+                    <textarea id="transcriptText" class="flex-grow w-full h-64 px-4 py-3 bg-slate-950 border border-emerald-500/30 rounded-xl text-emerald-100 font-mono text-sm focus:outline-none focus:border-emerald-500 transition resize-none" placeholder="Your transcribed speech output will appear here after stopping the recording..."></textarea>
+                </div>
+
+                <div class="lg:col-span-1 space-y-4">
+                    <label class="block text-xs font-mono uppercase text-slate-400 mb-2">Speech Metrics</label>
+                    <div class="bg-slate-950/80 rounded-xl p-4 border border-emerald-500/20">
+                        <p class="text-xs text-slate-400 uppercase tracking-widest font-mono">Word Count</p>
+                        <p id="wordCount" class="text-3xl font-bold text-emerald-400 font-mono mt-1">0</p>
+                    </div>
+                    <div class="bg-slate-950/80 rounded-xl p-4 border border-emerald-500/20">
+                        <p class="text-xs text-slate-400 uppercase tracking-widest font-mono">Duration</p>
+                        <p id="durationDisplay" class="text-3xl font-bold text-blue-400 font-mono mt-1">0:00</p>
+                    </div>
+                    <div class="bg-slate-950/80 rounded-xl p-4 border border-emerald-500/20">
+                        <p class="text-xs text-slate-400 uppercase tracking-widest font-mono">Speaking Pace</p>
+                        <p id="speakingPace" class="text-3xl font-bold text-green-400 font-mono mt-1">0 WPM</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Transcription & Analytics Section -->
-            <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-xl p-6 shadow-2xl mb-8">
-                <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                    Transcript & AI Analytics
-                </h2>
-
-                <!-- Transcript Container -->
-                <div id="transcriptContainer">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                        <!-- Transcript Text -->
-                        <div class="lg:col-span-2">
-                            <label class="block text-sm font-semibold text-slate-300 mb-3">Full AI Transcript (Auto-Corrected & Punctuated)</label>
-                            <textarea 
-                                id="transcriptText" 
-                                class="w-full h-64 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition resize-none font-mono text-sm"
-                                placeholder="Your transcribed text will appear here in real-time..."
-                            ></textarea>
-                        </div>
-
-                        <!-- Analytics Panel -->
-                        <div class="lg:col-span-1">
-                            <label class="block text-sm font-semibold text-slate-300 mb-3">Speech Analytics</label>
-                            <div class="space-y-3">
-                                <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                                    <p class="text-xs text-slate-400 uppercase tracking-widest">Word Count</p>
-                                    <p id="wordCount" class="text-3xl font-bold text-blue-400 mt-1">0</p>
-                                </div>
-                                <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                                    <p class="text-xs text-slate-400 uppercase tracking-widest">Duration</p>
-                                    <p id="durationDisplay" class="text-3xl font-bold text-purple-400 mt-1">0:00</p>
-                                </div>
-                                <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                                    <p class="text-xs text-slate-400 uppercase tracking-widest">Speaking Pace</p>
-                                    <p id="speakingPace" class="text-3xl font-bold text-green-400 mt-1">0 WPM</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="flex gap-3 flex-wrap">
-                        <button 
-                            id="copyBtn" 
-                            class="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2"
-                        >
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M8 3a1 1 0 011-1h2a1 1 0 011 1v1h2V4a2 2 0 00-2-2H9a2 2 0 00-2 2v1H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2h-1V3z"></path>
-                            </svg>
-                            Copy Transcript
-                        </button>
-                        <button 
-                            id="downloadBtn" 
-                            class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2"
-                        >
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M2 9.5A3.5 3.5 0 015.5 13H9v2H5.5A5.5 5.5 0 010 9.5 5.5 5.5 0 015.5 4H9v2H5.5A3.5 3.5 0 002 9.5zm11-1h6V9a1 1 0 10-2 0v-.5a1.5 1.5 0 10-3 0c0 .85.63 1.55 1.44 1.94.8.373 1.44 1.109 1.44 2.06 0 1.193-.926 2.17-2.1 2.17-.55 0-1.07-.206-1.448-.584a.989.989 0 10-1.397 1.397.75.75 0 001.059.001A2.25 2.25 0 0013 15.25c0-.622-.288-1.172-.744-1.54.516-.677.844-1.532.844-2.46 0-2.206-1.794-4-4-4zm7.378-6.917A.75.75 0 0020 3.75v12a.75.75 0 01-1.128.596l-5.422-3.865A.75.75 0 0113 12.75v-5.5a.75.75 0 01.45-.693l5.422-3.865a.75.75 0 01.906.134z" clip-rule="evenodd"></path>
-                            </svg>
-                            Download Video
-                        </button>
-                        <button 
-                            id="resetBtn" 
-                            class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-2"
-                        >
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 1119.414 9.414 1 1 0 01-1.414-1.414A5.002 5.002 0 104.659 4.999V6a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd"></path>
-                            </svg>
-                            New Session
-                        </button>
-                    </div>
-                </div>
+            <div class="flex gap-3 flex-wrap">
+                <button id="copyBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 border border-slate-700">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 011 1v1h2V4a2 2 0 00-2-2H9a2 2 0 00-2 2v1H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2h-1V3z"></path></svg>
+                    Copy Transcript
+                </button>
+                <button id="downloadAudioBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 border border-slate-700">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2 9.5A3.5 3.5 0 015.5 13H9v2H5.5A5.5 5.5 0 010 9.5 5.5 5.5 0 015.5 4H9v2H5.5A3.5 3.5 0 002 9.5zm11-1h6V9a1 1 0 10-2 0v-.5a1.5 1.5 0 10-3 0c0 .85.63 1.55 1.44 1.94.8.373 1.44 1.109 1.44 2.06 0 1.193-.926 2.17-2.1 2.17-.55 0-1.07-.206-1.448-.584a.989.989 0 10-1.397 1.397.75.75 0 001.059.001A2.25 2.25 0 0013 15.25c0-.622-.288-1.172-.744-1.54.516-.677.844-1.532.844-2.46 0-2.206-1.794-4-4-4zm7.378-6.917A.75.75 0 0020 3.75v12a.75.75 0 01-1.128.596l-5.422-3.865A.75.75 0 0113 12.75v-5.5a.75.75 0 01.45-.693l5.422-3.865a.75.75 0 01.906.134z" clip-rule="evenodd"></path></svg>
+                    Download Video/Audio
+                </button>
+                <button id="resetBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 border border-slate-700">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 1119.414 9.414 1 1 0 01-1.414-1.414A5.002 5.002 0 104.659 4.999V6a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                    New Session
+                </button>
             </div>
+        </div>
 
-            <!-- Debug Log -->
-            <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-xl p-6 shadow-2xl">
-                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                    Debug Log
-                </h2>
-                <div id="debugLog" class="bg-slate-900 rounded-lg p-4 h-48 overflow-y-auto border border-slate-700">
-                    <p class="log-entry text-slate-400">[INFO] LIT baba Studio initialized successfully.</p>
-                </div>
+        <div class="cyber-card rounded-xl p-6 shadow-2xl">
+            <h2 class="text-sm font-mono font-semibold mb-3 flex items-center gap-2 text-emerald-400">
+                <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                System & AI Debug Console
+            </h2>
+            <div id="debugLog" class="bg-slate-950 rounded-lg p-4 h-40 overflow-y-auto border border-emerald-500/20 space-y-1">
+                <p class="log-entry text-slate-400">[INFO] Initializing LIT baba Studio environment...</p>
             </div>
         </div>
     </div>
 
-    <script>
-        /**
-         * LIT baba - Enhanced Free AI Transcription & Analytics Engine
-         * Fully optimized for GitHub Pages static hosting.
-         */
+    <footer class="text-center py-6 text-xs text-slate-500 font-mono border-t border-slate-900 mt-12">
+        LIT baba Speech Studio • Client-Side Transformers.js Whisper WASM Engine
+    </footer>
 
-        const CONFIG = {
-            RECOGNITION_LANGUAGE: 'en-US',
-        };
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
+        // Configure environment
+        env.allowLocalModels = false;
+
+        let transcriber = null;
         let appState = {
             isRecording: false,
             isPaused: false,
@@ -347,30 +248,8 @@
             totalSeconds: 120,
             remainingSeconds: 120,
             startTime: null,
-            transcript: '',
-            isRecognitionActive: false,
+            recordingStartTime: 0
         };
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;
-        let recognitionRestartTimer = null;
-
-        if (SpeechRecognition) {
-            try {
-                recognition = new SpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.lang = CONFIG.RECOGNITION_LANGUAGE;
-                recognition.maxAlternatives = 1;
-                setupRecognitionListeners();
-                addLog('AI Speech Engine initialized successfully', 'success');
-            } catch (error) {
-                addLog(`Failed to initialize Speech Engine: ${error.message}`, 'error');
-            }
-        } else {
-            addLog('Web Speech API not supported in this browser', 'error');
-            showToast('Speech recognition not supported in this browser. Use Chrome, Edge, or Safari.', 'error');
-        }
 
         function addLog(message, type = 'info') {
             const debugLog = document.getElementById('debugLog');
@@ -378,11 +257,10 @@
             const timestamp = new Date().toLocaleTimeString();
             const colors = {
                 info: 'text-blue-400',
-                success: 'text-green-400',
+                success: 'text-emerald-400',
                 error: 'text-red-400',
-                warning: 'text-yellow-400'
+                warning: 'text-amber-400'
             };
-            
             entry.className = `log-entry ${colors[type] || colors.info}`;
             entry.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
             debugLog.appendChild(entry);
@@ -392,13 +270,10 @@
         function showToast(message, type = 'info') {
             const toastContainer = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            const bgColor = type === 'success' ? 'bg-green-900/80' : type === 'error' ? 'bg-red-900/80' : 'bg-blue-900/80';
-            const borderColor = type === 'success' ? 'border-green-700' : type === 'error' ? 'border-red-700' : 'border-blue-700';
-
-            toast.className = `toast-enter ${bgColor} ${borderColor} border rounded-lg px-4 py-3 text-sm font-medium max-w-sm`;
+            const bgColor = type === 'success' ? 'bg-emerald-950/90 border-emerald-500 text-emerald-200' : type === 'error' ? 'bg-red-950/90 border-red-500 text-red-200' : 'bg-slate-900 border-slate-700 text-slate-200';
+            toast.className = `toast-enter border rounded-xl px-4 py-3 text-xs font-medium max-w-sm shadow-xl backdrop-blur-md ${bgColor}`;
             toast.textContent = message;
             toastContainer.appendChild(toast);
-
             setTimeout(() => toast.remove(), 4000);
         }
 
@@ -412,100 +287,97 @@
             document.getElementById('timerDisplay').textContent = formatTime(appState.remainingSeconds);
         }
 
-        function setupRecognitionListeners() {
-            if (!recognition) return;
-
-            recognition.onstart = () => {
-                addLog('AI transcription stream connected', 'success');
-                appState.isRecognitionActive = true;
-            };
-
-            recognition.onresult = (event) => {
-                let interimTranscript = '';
-                let finalTranscript = '';
-
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalTranscript += transcript + ' ';
-                    } else {
-                        interimTranscript += transcript;
-                    }
-                }
-
-                if (finalTranscript) {
-                    appState.transcript += finalTranscript;
-                    addLog(`Processed chunk: "${finalTranscript.trim()}"`, 'success');
-                }
-
-                document.getElementById('transcriptText').value = appState.transcript + interimTranscript;
-                updateAnalytics();
-            };
-
-            recognition.onerror = (event) => {
-                const errorMessages = {
-                    'no-speech': 'No speech detected. Please continue speaking.',
-                    'audio-capture': 'No microphone detected.',
-                    'network': 'Network connection hiccup - maintaining buffer...',
-                    'aborted': 'Transcription stream stopped.',
-                    'service-not-allowed': 'Speech service unauthorized.'
-                };
-                
-                const errorMsg = errorMessages[event.error] || `Recognition notice: ${event.error}`;
-                addLog(errorMsg, event.error === 'network' || event.error === 'aborted' ? 'warning' : 'error');
-                
-                if (appState.isRecording && event.error !== 'aborted' && !appState.isPaused) {
-                    if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
-                    recognitionRestartTimer = setTimeout(() => {
-                        try {
-                            recognition.start();
-                            addLog('Reconnected speech transcription stream', 'info');
-                        } catch (e) {
-                            addLog(`Stream reconnection notice: ${e.message}`, 'warning');
+        // Initialize Whisper Model on load
+        async function loadWhisperModel() {
+            try {
+                addLog('Loading Whisper AI model (Xenova/whisper-tiny.en)...', 'info');
+                transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en', {
+                    progress_callback: (progressData) => {
+                        if (progressData.status === 'progress' && progressData.total) {
+                            const percent = Math.round((progressData.loaded / progressData.total) * 100);
+                            document.getElementById('modelProgressFill').style.width = `${percent}%`;
+                            document.getElementById('modelDesc').textContent = `Downloading ${progressData.file || 'model weights'}... (${percent}%)`;
                         }
-                    }, 800);
-                }
-            };
+                    }
+                });
 
-            recognition.onend = () => {
-                addLog('AI transcription stream paused', 'info');
-                appState.isRecognitionActive = false;
-                
-                // Auto-resume if still recording
-                if (appState.isRecording && !appState.isPaused) {
-                    try {
-                        recognition.start();
-                    } catch (e) {}
-                }
-            };
+                document.getElementById('modelProgressFill').style.width = '100%';
+                document.getElementById('modelSpinner').style.display = 'none';
+                document.getElementById('modelTitle').textContent = 'AI Whisper Model Ready (Cached Locally)';
+                document.getElementById('modelDesc').textContent = 'Model loaded successfully. Ready for private client-side speech recognition.';
+                document.getElementById('modelStatusBanner').classList.remove('border-emerald-500/40');
+                document.getElementById('modelStatusBanner').classList.add('border-emerald-500');
+
+                // Enable start button
+                const startBtn = document.getElementById('startBtn');
+                startBtn.disabled = false;
+                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                addLog('Whisper AI model loaded successfully and ready!', 'success');
+                showToast('Whisper AI model loaded successfully!', 'success');
+            } catch (error) {
+                addLog(`Failed to load Whisper AI model: ${error.message}`, 'error');
+                showToast('Failed to load AI model. Check network connection.', 'error');
+                document.getElementById('modelTitle').textContent = 'Model Loading Failed';
+                document.getElementById('modelDesc').textContent = error.message;
+                document.getElementById('modelSpinner').style.display = 'none';
+            }
         }
 
-        function updateAnalytics() {
-            const text = document.getElementById('transcriptText').value;
+        // Audio decoding and transcription processor
+        async function transcribeRecordedAudio(blob) {
+            if (!transcriber) {
+                showToast('Whisper model not initialized yet.', 'error');
+                return;
+            }
+
+            addLog('Preparing audio buffer for Whisper AI inference...', 'info');
+            document.getElementById('recordingStatus').textContent = 'Running AI Transcription...';
+            showToast('Running AI Whisper transcription...', 'info');
+
+            try {
+                const arrayBuffer = await blob.arrayBuffer();
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                const audioData = audioBuffer.getChannelData(0); // Mono float32 array at 16kHz
+
+                addLog(`Audio decoded successfully. Duration: ${audioBuffer.duration.toFixed(2)}s. Transcribing...`, 'info');
+
+                const output = await transcriber(audioData, {
+                    chunk_length_s: 30,
+                    stride_length_s: 5,
+                    return_timestamps: false
+                });
+
+                const transcriptText = output.text ? output.text.trim() : '';
+                document.getElementById('transcriptText').value = transcriptText;
+                
+                updateAnalytics(transcriptText, audioBuffer.duration);
+                addLog(`Transcription completed successfully! Length: ${transcriptText.length} characters.`, 'success');
+                showToast('Transcription completed successfully!', 'success');
+                document.getElementById('recordingStatus').textContent = 'Completed';
+            } catch (error) {
+                addLog(`Transcription error: ${error.message}`, 'error');
+                showToast(`Transcription error: ${error.message}`, 'error');
+                document.getElementById('recordingStatus').textContent = 'Error during transcription';
+            }
+        }
+
+        function updateAnalytics(text, durationSecs) {
             const words = text.trim().split(/\s+/).filter(w => w.length > 0);
             const wordCount = words.length;
-
-            const elapsed = appState.totalSeconds - appState.remainingSeconds;
-            const wpm = elapsed > 0 ? Math.round((wordCount / elapsed) * 60) : 0;
+            const wpm = durationSecs > 0 ? Math.round((wordCount / durationSecs) * 60) : 0;
 
             document.getElementById('wordCount').textContent = wordCount;
-            document.getElementById('durationDisplay').textContent = formatTime(elapsed);
+            document.getElementById('durationDisplay').textContent = formatTime(Math.round(durationSecs));
             document.getElementById('speakingPace').textContent = `${wpm} WPM`;
         }
 
         async function requestMediaAccess() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
-                    },
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        facingMode: 'user',
-                    },
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
                 });
 
                 appState.mediaStream = stream;
@@ -513,27 +385,19 @@
                 videoElement.srcObject = stream;
                 videoElement.classList.remove('hidden');
                 document.getElementById('videoPlaceholder').style.display = 'none';
-                
                 document.getElementById('permissionAlert').classList.add('hidden');
-                document.getElementById('videoStatus').textContent = '✓ Camera active';
                 
                 addLog('Camera and microphone access granted', 'success');
-                showToast('Camera and microphone connected', 'success');
                 return true;
             } catch (error) {
                 addLog(`Media access denied: ${error.message}`, 'error');
                 document.getElementById('permissionAlert').classList.remove('hidden');
-                showToast('Camera/microphone access denied', 'error');
+                showToast('Microphone/Camera access denied', 'error');
                 return false;
             }
         }
 
         async function startRecording() {
-            if (!recognition) {
-                showToast('AI Speech Engine not available', 'error');
-                return;
-            }
-
             if (!appState.mediaStream) {
                 const hasAccess = await requestMediaAccess();
                 if (!hasAccess) return;
@@ -544,9 +408,9 @@
             appState.isPaused = false;
             appState.remainingSeconds = appState.totalSeconds;
             appState.recordedBlob = null;
-            appState.transcript = '';
 
             document.getElementById('startBtn').disabled = true;
+            document.getElementById('startBtn').classList.add('opacity-50');
             document.getElementById('pauseBtn').disabled = false;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('minutesInput').disabled = true;
@@ -558,53 +422,43 @@
             const recordingStream = new MediaStream();
             const audioTrack = appState.mediaStream.getAudioTracks()[0];
             const videoTrack = appState.mediaStream.getVideoTracks()[0];
-            
             if (audioTrack) recordingStream.addTrack(audioTrack);
             if (videoTrack) recordingStream.addTrack(videoTrack);
 
             try {
-                appState.mediaRecorder = new MediaRecorder(recordingStream);
+                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+                appState.mediaRecorder = new MediaRecorder(recordingStream, { mimeType });
 
                 appState.mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        appState.recordedChunks.push(event.data);
-                    }
+                    if (event.data.size > 0) appState.recordedChunks.push(event.data);
                 };
 
                 appState.mediaRecorder.onstop = () => {
-                    const mimeType = appState.mediaRecorder.mimeType || 'video/webm';
                     appState.recordedBlob = new Blob(appState.recordedChunks, { type: mimeType });
-                    
                     const videoUrl = URL.createObjectURL(appState.recordedBlob);
                     document.getElementById('recordedVideo').src = videoUrl;
                     document.getElementById('playbackSection').classList.remove('hidden');
+                    addLog('Video & audio recording captured successfully', 'success');
                     
-                    addLog('Video recording compiled successfully', 'success');
+                    // Trigger transcription automatically
+                    transcribeRecordedAudio(appState.recordedBlob);
                 };
 
-                appState.mediaRecorder.start();
+                appState.mediaRecorder.start(1000);
             } catch (error) {
                 addLog(`MediaRecorder error: ${error.message}`, 'error');
             }
 
-            try {
-                recognition.start();
-            } catch (error) {
-                addLog(`Recognition start notice: ${error.message}`, 'warning');
-            }
-
-            addLog('Session recording and live transcription started', 'success');
-            showToast('Recording started - speak clearly!', 'success');
-
             appState.startTime = Date.now();
             updateTimerDisplay();
             startTimer();
-            document.getElementById('recordingStatus').textContent = 'Recording & Transcribing...';
+            document.getElementById('recordingStatus').textContent = 'Recording in progress...';
+            addLog('Session recording started', 'success');
+            showToast('Recording started - speak clearly!', 'success');
         }
 
         function startTimer() {
             if (appState.timerInterval) clearInterval(appState.timerInterval);
-
             appState.timerInterval = setInterval(() => {
                 if (!appState.isPaused && appState.isRecording) {
                     const elapsed = Math.floor((Date.now() - appState.startTime) / 1000);
@@ -613,67 +467,56 @@
 
                     if (appState.remainingSeconds === 0) {
                         stopRecording();
-                        showToast('Practice session completed!', 'success');
+                        showToast('Practice timer completed!', 'success');
                     }
                 }
             }, 1000);
         }
 
-        async function stopRecording() {
+        function stopRecording() {
             if (!appState.isRecording) return;
-            
             appState.isRecording = false;
             appState.isPaused = false;
-            
+
             if (appState.timerInterval) clearInterval(appState.timerInterval);
-            if (recognition && appState.isRecognitionActive) {
-                try {
-                    recognition.stop();
-                } catch(e) {}
-            }
-            
             if (appState.mediaRecorder && appState.mediaRecorder.state !== 'inactive') {
                 appState.mediaRecorder.stop();
             }
-            
             if (appState.mediaStream) {
                 appState.mediaStream.getTracks().forEach(track => track.stop());
                 appState.mediaStream = null;
             }
-            
+
             document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').classList.remove('opacity-50');
             document.getElementById('pauseBtn').disabled = true;
             document.getElementById('stopBtn').disabled = true;
             document.getElementById('minutesInput').disabled = false;
             document.getElementById('secondsInput').disabled = false;
             document.getElementById('recordingIndicator').classList.add('hidden');
-            document.getElementById('videoStatus').textContent = 'Recording finished';
-            document.getElementById('recordingStatus').textContent = 'Completed';
-            
-            addLog('Session finalized successfully', 'success');
-            showToast('Transcription finalized!', 'success');
-            updateAnalytics();
+
+            addLog('Recording stopped. Processing audio...', 'info');
         }
 
+        // Event Listeners
         document.getElementById('startBtn').addEventListener('click', startRecording);
-        
+        document.getElementById('stopBtn').addEventListener('click', stopRecording);
+
         document.getElementById('pauseBtn').addEventListener('click', () => {
             appState.isPaused = !appState.isPaused;
             const pauseBtn = document.getElementById('pauseBtn');
             if (appState.isPaused) {
-                pauseBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>Resume</span>';
-                if (recognition && appState.isRecognitionActive) recognition.stop();
+                pauseBtn.textContent = 'Resume';
+                if (appState.mediaRecorder && appState.mediaRecorder.state === 'recording') appState.mediaRecorder.pause();
                 addLog('Recording paused', 'warning');
                 showToast('Recording paused', 'warning');
             } else {
-                pauseBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 1.5A.75.75 0 005 2.25v15.5a.75.75 0 001.5 0V2.25A.75.75 0 005.75 1.5zm8.5 0a.75.75 0 00-.75.75v15.5a.75.75 0 001.5 0V2.25a.75.75 0 00-.75-.75z"></path></svg>Pause</span>';
-                if (recognition && !appState.isRecognitionActive) recognition.start();
+                pauseBtn.textContent = 'Pause';
+                if (appState.mediaRecorder && appState.mediaRecorder.state === 'paused') appState.mediaRecorder.resume();
                 addLog('Recording resumed', 'info');
                 showToast('Recording resumed', 'info');
             }
         });
-
-        document.getElementById('stopBtn').addEventListener('click', stopRecording);
 
         document.getElementById('copyBtn').addEventListener('click', () => {
             const text = document.getElementById('transcriptText').value;
@@ -686,23 +529,23 @@
             });
         });
 
-        document.getElementById('downloadBtn').addEventListener('click', () => {
+        document.getElementById('downloadAudioBtn').addEventListener('click', () => {
             if (!appState.recordedBlob) {
-                showToast('No recorded video available', 'error');
+                showToast('No recorded video/audio available', 'error');
                 return;
             }
             const url = URL.createObjectURL(appState.recordedBlob);
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = `lit-baba-recording-${Date.now()}.webm`;
+            a.download = `lit-baba-session-${Date.now()}.webm`;
             document.body.appendChild(a);
             a.click();
             setTimeout(() => {
                 URL.revokeObjectURL(url);
                 a.remove();
             }, 100);
-            showToast('Video download started', 'success');
+            showToast('Download started', 'success');
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => {
@@ -719,8 +562,13 @@
 
         document.getElementById('minutesInput').addEventListener('input', updateDurationFromInputs);
         document.getElementById('secondsInput').addEventListener('input', updateDurationFromInputs);
-        
+
         updateDurationFromInputs();
+
+        // Load Whisper model on page load
+        window.addEventListener('load', () => {
+            loadWhisperModel();
+        });
     </script>
 </body>
 </html>
